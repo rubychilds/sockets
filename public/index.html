@@ -1,0 +1,100 @@
+<html>
+    <head>
+        <title>Sockets!</title>
+        <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+        <style>
+            html, body {
+                margin: 0;
+                padding: 0;
+            }
+            * {
+                cursor: pointer;
+            }
+            #drawing {
+                position: absolute;
+                height: 100vh;
+                width: 100%;
+            }
+
+            button {
+                position: absolute;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="drawing"></canvas>
+
+        <button id='clear-canvas'>Clear Canvas</button>
+        <script>
+          document.getElementById('clear-canvas').addEventListener('click', function(){
+            console.log('hello world');
+            var socket = io.connect();
+            socket.emit('testing', function(){
+
+            });
+
+          });
+
+          document.addEventListener("DOMContentLoaded", function() {
+
+                var socket = io.connect();
+                socket.on('testing', function(data){
+                  console.log('hello this is testing');
+                  console.log('data', data);
+                });
+
+                document.getElementById('clear-canvas').addEventListener('click', function(){
+                  socket.emit('clear');
+                  context.clearRect(0,0,canvas.width, canvas.height);
+                });
+
+                socket.on('clear', function(){
+                  context.clearRect(0,0,canvas.width, canvas.height);
+                });
+
+                socket.on('draw_line', function(data){
+                  var line = data.line;
+                  context.beginPath();
+                  context.moveTo(line[0].x*width, line[0].y*height);
+                  context.lineTo(line[1].x*width, line[1].y*height);
+                  context.stroke();
+                });
+
+                var mouse = {
+                    click: false,
+                    move: false,
+                    pos: { x: 0, y: 0 },
+                    pos_prev: false
+                };
+                var canvas = document.getElementById('drawing');
+                var context = canvas.getContext('2d');
+                var width = window.innerWidth;
+                var height = window.innerHeight;
+
+                canvas.width = width;
+                canvas.height = height;
+
+                canvas.onmousedown = function(e) { mouse.click = true; };
+                canvas.onmouseup = function(e) { mouse.click = false; };
+
+                canvas.onmousemove = function(e) {
+                    mouse.pos.x = e.clientX / width;
+                    mouse.pos.y = e.clientY / height;
+                    mouse.move = true;
+                };
+
+                function mainLoop() {
+                  if (mouse.click && mouse.move && mouse.pos_prev) {
+                      socket.emit('draw_line', { line: [mouse.pos, mouse.pos_prev] });
+                      mouse.move = false;
+                  }
+                  mouse.pos_prev = { x: mouse.pos.x, y: mouse.pos.y };
+
+                  setTimeout(mainLoop, 25);
+              }
+              mainLoop();
+            });
+
+        </script>
+    </body>
+</html>
